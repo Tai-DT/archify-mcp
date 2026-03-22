@@ -47,6 +47,10 @@ import { generateUISpec, formatUISpec } from './generate-ui-spec.js';
 import { createPerformanceBudget, formatPerformanceBudget } from './create-performance-budget.js';
 import { planMonetization, formatMonetizationPlan } from './plan-monetization.js';
 import { analyzeEnvironment } from '../knowledge/scoring.js';
+import { makeDecision, formatDecisionResult, type Criterion, type Alternative, type Constraint } from '../engine/decision-engine.js';
+import { analyzeStackCompatibility } from '../engine/compatibility-graph.js';
+import { monteCarloSimulation, type Distribution } from '../engine/optimizer.js';
+import { technologies } from '../knowledge/technologies.js';
 
 export function runFullAnalysis(
   name: string,
@@ -127,6 +131,67 @@ export function runFullAnalysis(
   stackSummary.forEach(s => sections.push(`- ${s}`));
   sections.push(`\n${stack.architectureNotes}`);
 
+  // ─── STEP 3b: Compatibility Analysis (Graph Algorithm) ───
+  sections.push('\n### 🔗 Stack Compatibility Analysis (Graph Algorithm)\n');
+  const stackIds: string[] = [];
+  if (stack.frontend) stackIds.push(stack.frontend.technology.id);
+  if (stack.backend) stackIds.push(stack.backend.technology.id);
+  if (stack.database) stackIds.push(stack.database.technology.id);
+  if (stack.cache) stackIds.push(stack.cache.technology.id);
+  if (stack.auth) stackIds.push(stack.auth.technology.id);
+  if (stack.cloud) stackIds.push(stack.cloud.technology.id);
+  if (stack.realtime) stackIds.push(stack.realtime.technology.id);
+  if (stack.mobile) stackIds.push(stack.mobile.technology.id);
+  const compat = analyzeStackCompatibility(stackIds);
+  const compatEmoji = compat.normalizedScore >= 70 ? '✅' : compat.normalizedScore >= 40 ? '🟡' : '🔴';
+  sections.push(`**Compatibility Score**: ${compatEmoji} ${compat.normalizedScore}/100`);
+  if (compat.synergies.length > 0) {
+    sections.push(`**Synergies** (${compat.synergies.length}):`);
+    compat.synergies.slice(0, 5).forEach(s =>
+      sections.push(`- ✅ ${s.from} ↔ ${s.to} (+${s.score}): ${s.reason}`)
+    );
+  }
+  if (compat.conflicts.length > 0) {
+    sections.push(`\n**Conflicts** (${compat.conflicts.length}):`);
+    compat.conflicts.forEach(c =>
+      sections.push(`- ⚠️ ${c.from} ↔ ${c.to} (${c.score}): ${c.reason}`)
+    );
+  }
+
+  // ─── STEP 3c: TOPSIS Decision Validation ───
+  sections.push('\n### 🧠 Decision Validation (TOPSIS + AHP)\n');
+  const primaryCategory = stack.frontend ? 'frontend_framework' : 'backend_framework';
+  const categoryTechs = technologies.filter(t => t.category === primaryCategory);
+  if (categoryTechs.length >= 2) {
+    const priorities: Record<string, number> = {
+      performance: 3, scalability: scale === 'enterprise' ? 5 : 3,
+      developerExperience: scale === 'mvp' ? 5 : 3,
+      ecosystem: 3, security: projectType === 'fintech' ? 5 : 3,
+      costEfficiency: scale === 'mvp' ? 4 : 2,
+      documentation: 2, communitySupport: 2,
+    };
+    const totalP = Object.values(priorities).reduce((s, v) => s + v, 0);
+    const criteria: Criterion[] = Object.entries(priorities).map(([id, p]) => ({
+      id, name: id.replace(/([A-Z])/g, ' $1').trim(), weight: p / totalP, direction: 'maximize' as const,
+    }));
+    const alternatives: Alternative[] = categoryTechs.map(t => ({
+      id: t.id, name: t.name,
+      scores: t.scores as unknown as Record<string, number>,
+    }));
+    const decision = makeDecision(alternatives, criteria);
+    if (decision.rankings.length >= 2) {
+      sections.push(`**Method**: ${decision.method} | **Confidence**: ${decision.confidence}%`);
+      sections.push(`**Top 3** (${primaryCategory}):`);
+      decision.rankings.slice(0, 3).forEach(r => {
+        const medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉';
+        sections.push(`- ${medal} **${r.alternative.name}**: ${r.normalizedScore}/100`);
+      });
+      if (decision.sensitivityAnalysis && decision.sensitivityAnalysis.robustness < 70) {
+        sections.push(`\n> ⚠️ Robustness: ${decision.sensitivityAnalysis.robustness}% — kết quả có thể thay đổi nếu ưu tiên thay đổi`);
+      }
+    }
+  }
+
   // ═══════════════════════════════════════════
   // PHASE 3: DESIGN
   // ═══════════════════════════════════════════
@@ -189,13 +254,13 @@ export function runFullAnalysis(
 
   // ─── STEP 8: Security ───
   sections.push('## 8️⃣ Đánh giá bảo mật\n');
-  const stackIds = [
+  const securityStackIds = [
     stack.frontend?.technology.id, stack.backend?.technology.id,
     stack.database?.technology.id, stack.auth?.technology.id,
     stack.cache?.technology.id,
   ].filter(Boolean) as string[];
   const hasPayment = !!stack.payment;
-  const security = auditSecurity(stackIds, projectType, !!stack.auth, hasPayment);
+  const security = auditSecurity(securityStackIds, projectType, !!stack.auth, hasPayment);
   const gradeEmoji: Record<string, string> = { A: '🟢', B: '🔵', C: '🟡', D: '🟠', F: '🔴' };
   sections.push(`**Score**: ${gradeEmoji[security.grade]} ${security.overallScore}/100 (Grade ${security.grade})`);
   sections.push(`**Critical issues**: ${security.findings.filter(f => f.severity === 'critical').length} | **High**: ${security.findings.filter(f => f.severity === 'high').length}`);

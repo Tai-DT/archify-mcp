@@ -24,6 +24,9 @@ import { createPerformanceBudget, formatPerformanceBudget } from './tools/create
 import { planMonetization, formatMonetizationPlan } from './tools/plan-monetization.js';
 import { technologies } from './knowledge/technologies.js';
 import { analyzeEnvironment } from './knowledge/scoring.js';
+import { makeDecision, formatDecisionResult, type Criterion, type Alternative, type Constraint } from './engine/decision-engine.js';
+import { analyzeStackCompatibility, formatCompatibility, findBestCompatible } from './engine/compatibility-graph.js';
+import { monteCarloSimulation, formatMonteCarloResult, type Distribution } from './engine/optimizer.js';
 import type { ProjectType, ProjectScale, BudgetRange, EnvironmentContext, DeploymentEnv, TargetDevice, NetworkCondition } from './types/index.js';
 
 // Reusable Zod schemas
@@ -667,6 +670,114 @@ export function createServer(): McpServer {
     async (params) => {
       const plan = planMonetization(params.project_type as ProjectType, params.scale as ProjectScale, params.features || [], params.estimated_monthly_cost || 200);
       return { content: [{ type: 'text' as const, text: formatMonetizationPlan(plan) }] };
+    }
+  );
+
+  // ============================================================
+  // TOOL 24: Smart Recommend (TOPSIS + AHP + CSP)
+  // ============================================================
+  server.tool(
+    'smart_recommend',
+    'Advanced tech recommendation using TOPSIS ranking + AHP weighting + Constraint Satisfaction. Returns ranked alternatives with confidence score, sensitivity analysis, and breakdown.',
+    {
+      category: z.string().describe('Technology category to recommend for (e.g., frontend_framework, database_relational, cache, auth, cloud)'),
+      project_type: projectTypeEnum.describe('Project type'),
+      scale: scaleEnum.describe('Project scale'),
+      priorities: z.record(z.number()).optional().describe('Custom priority weights: { performance: 1-5, scalability: 1-5, costEfficiency: 1-5, ... }'),
+      min_scores: z.record(z.number()).optional().describe('Hard constraints: minimum scores required, e.g. { security: 7, performance: 6 }'),
+      features: z.array(z.string()).optional().describe('Feature keywords for context-aware filtering'),
+    },
+    async (params) => {
+      // Build criteria with AHP weights
+      const defaultPriorities: Record<string, number> = {
+        performance: 3, scalability: 3, developerExperience: 3,
+        ecosystem: 2, security: 3, costEfficiency: 3,
+        documentation: 2, communitySupport: 2,
+      };
+      const priorities = { ...defaultPriorities, ...(params.priorities || {}) };
+
+      // Scale-based adjustments
+      if (params.scale === 'mvp') { priorities.costEfficiency += 2; priorities.developerExperience += 1; }
+      if (params.scale === 'enterprise') { priorities.scalability += 2; priorities.security += 2; }
+
+      const totalPriority = Object.values(priorities).reduce((s, v) => s + v, 0);
+      const criteria: Criterion[] = Object.entries(priorities).map(([id, p]) => ({
+        id, name: id.replace(/([A-Z])/g, ' $1').trim(), weight: p / totalPriority, direction: 'maximize' as const,
+      }));
+
+      // Build alternatives from technologies
+      const categoryTechs = technologies.filter(t => t.category === params.category);
+      const alternatives: Alternative[] = categoryTechs.map(t => ({
+        id: t.id, name: t.name,
+        scores: t.scores as unknown as Record<string, number>,
+        metadata: { pricing: t.pricing, maturity: t.maturity, learningCurve: t.learningCurve },
+      }));
+
+      // Build constraints from min_scores
+      const constraints: Constraint[] = [];
+      if (params.min_scores) {
+        for (const [key, minVal] of Object.entries(params.min_scores)) {
+          constraints.push({ criterionId: key, operator: 'gte', value: minVal, label: `${key} >= ${minVal}` });
+        }
+      }
+
+      const result = makeDecision(alternatives, criteria, constraints);
+      return { content: [{ type: 'text' as const, text: formatDecisionResult(result) }] };
+    }
+  );
+
+  // ============================================================
+  // TOOL 25: Analyze Stack Compatibility
+  // ============================================================
+  server.tool(
+    'analyze_compatibility',
+    'Analyze compatibility between technologies using graph-based synergy/conflict detection. Shows +3 (perfect synergy) to -3 (incompatible) scores for each tech pair.',
+    {
+      tech_ids: z.array(z.string()).describe('Technology IDs to analyze compatibility for, e.g. ["nextjs", "prisma", "postgresql", "clerk", "vercel"]'),
+    },
+    async (params) => {
+      const result = analyzeStackCompatibility(params.tech_ids);
+      return { content: [{ type: 'text' as const, text: formatCompatibility(result) }] };
+    }
+  );
+
+  // ============================================================
+  // TOOL 26: Monte Carlo Cost Simulation
+  // ============================================================
+  server.tool(
+    'simulate_cost',
+    'Monte Carlo simulation for cost/timeline estimation under uncertainty. Uses PERT/triangular distributions. Returns P10 (optimistic), P50 (likely), P90 (pessimistic) with histogram.',
+    {
+      items: z.array(z.object({
+        name: z.string().describe('Cost item name'),
+        min: z.number().describe('Minimum (best case)'),
+        likely: z.number().describe('Most likely value'),
+        max: z.number().describe('Maximum (worst case)'),
+        distribution: z.enum(['pert', 'triangular', 'normal', 'uniform']).optional().describe('Distribution type (default: pert)'),
+      })).describe('Cost/timeline items with uncertainty ranges'),
+      iterations: z.number().optional().describe('Number of simulation iterations (default: 10000)'),
+      unit: z.string().optional().describe('Unit for display (default: $)'),
+    },
+    async (params) => {
+      const distributions: Distribution[] = params.items.map(item => ({
+        type: (item.distribution || 'pert') as Distribution['type'],
+        min: item.min,
+        most_likely: item.likely,
+        max: item.max,
+      }));
+
+      const result = monteCarloSimulation(distributions, params.iterations || 10000);
+      const unit = params.unit || '$';
+
+      let output = formatMonteCarloResult(result, unit);
+      output += '\n\n### Input Items\n';
+      output += '| Item | Min | Likely | Max | Distribution |\n';
+      output += '|------|-----|--------|-----|-------------|\n';
+      params.items.forEach(item => {
+        output += `| ${item.name} | ${unit}${item.min} | ${unit}${item.likely} | ${unit}${item.max} | ${item.distribution || 'pert'} |\n`;
+      });
+
+      return { content: [{ type: 'text' as const, text: output }] };
     }
   );
 
