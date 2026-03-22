@@ -58,6 +58,7 @@ function getEnvDeploymentScore(techId: string, deployEnv: DeploymentEnv): number
 function getDeviceScore(techId: string, devices: TargetDevice[]): number {
   const fit = getEnvFit(techId);
   if (!fit.bundleSizeKb && !fit.lowEndDeviceScore) return 1.0; // not a client-side tech, no penalty
+  if (!devices || devices.length === 0) return 1.0; // no device info, no penalty
 
   let score = 1.0;
 
