@@ -188,7 +188,8 @@ export type TechCategory =
   | 'analytics'
   | 'devops'
   | 'cloud_platform'
-  | 'notification';
+  | 'notification'
+  | 'orm';
 
 export type TechDeploymentModel = 'module' | 'standard' | 'hybrid';
 

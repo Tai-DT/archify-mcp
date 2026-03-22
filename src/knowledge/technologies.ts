@@ -32,7 +32,7 @@ export const technologies: Technology[] = [
   {
     id: 'angular', name: 'Angular', category: 'frontend_framework',
     description: 'Enterprise-grade framework by Google with full tooling',
-    scores: { performance: 8, scalability: 10, developerExperience: 7, ecosystem: 8, security: 9, costEfficiency: 10, documentation: 9, communitySupport: 8 },
+    scores: { performance: 8, scalability: 10, developerExperience: 7, ecosystem: 8, security: 9, costEfficiency: 8, documentation: 9, communitySupport: 8 },
     bestFor: ['enterprise apps', 'large teams', 'complex forms', 'TypeScript-first'],
     notIdealFor: ['small projects', 'rapid prototyping', 'startups'],
     ecosystem: ['Angular Material', 'NgRx', 'RxJS', 'Nx'],
@@ -72,7 +72,7 @@ export const technologies: Technology[] = [
   {
     id: 'nestjs', name: 'NestJS', category: 'backend_framework',
     description: 'Enterprise Node.js framework inspired by Angular with DI',
-    scores: { performance: 8, scalability: 9, developerExperience: 8, ecosystem: 8, security: 9, costEfficiency: 9, documentation: 9, communitySupport: 8 },
+    scores: { performance: 8, scalability: 9, developerExperience: 9, ecosystem: 8, security: 9, costEfficiency: 9, documentation: 9, communitySupport: 8 },
     bestFor: ['enterprise APIs', 'microservices', 'TypeScript teams', 'complex backends'],
     notIdealFor: ['simple APIs', 'serverless-first', 'small projects'],
     ecosystem: ['TypeORM', 'Prisma', 'Passport', 'Bull'],
@@ -81,7 +81,7 @@ export const technologies: Technology[] = [
   {
     id: 'express', name: 'Express.js', category: 'backend_framework',
     description: 'Minimal and flexible Node.js web framework',
-    scores: { performance: 7, scalability: 7, developerExperience: 8, ecosystem: 10, security: 6, costEfficiency: 10, documentation: 8, communitySupport: 10 },
+    scores: { performance: 7, scalability: 7, developerExperience: 8, ecosystem: 10, security: 7, costEfficiency: 10, documentation: 8, communitySupport: 10 },
     bestFor: ['REST APIs', 'prototyping', 'small-medium apps'],
     notIdealFor: ['enterprise apps needing structure', 'high performance'],
     ecosystem: ['Passport', 'Multer', 'Helmet', 'Morgan'],
@@ -126,7 +126,7 @@ export const technologies: Technology[] = [
   {
     id: 'spring_boot', name: 'Spring Boot', category: 'backend_framework',
     description: 'Enterprise Java/Kotlin framework with comprehensive ecosystem',
-    scores: { performance: 9, scalability: 10, developerExperience: 7, ecosystem: 10, security: 10, costEfficiency: 8, documentation: 9, communitySupport: 9 },
+    scores: { performance: 9, scalability: 10, developerExperience: 6, ecosystem: 9, security: 10, costEfficiency: 6, documentation: 9, communitySupport: 9 },
     bestFor: ['enterprise apps', 'fintech', 'large teams', 'microservices'],
     notIdealFor: ['small projects', 'startups', 'rapid prototyping'],
     ecosystem: ['Spring Cloud', 'Spring Security', 'Hibernate', 'Kafka'],
@@ -135,7 +135,7 @@ export const technologies: Technology[] = [
   {
     id: 'hono', name: 'Hono', category: 'backend_framework',
     description: 'Ultra-fast web framework for edge computing',
-    scores: { performance: 10, scalability: 9, developerExperience: 9, ecosystem: 6, security: 7, costEfficiency: 10, documentation: 8, communitySupport: 6 },
+    scores: { performance: 10, scalability: 9, developerExperience: 9, ecosystem: 6, security: 8, costEfficiency: 10, documentation: 8, communitySupport: 6 },
     bestFor: ['edge functions', 'serverless', 'Cloudflare Workers', 'lightweight APIs'],
     notIdealFor: ['complex enterprise', 'large monoliths'],
     ecosystem: ['Cloudflare Workers', 'Deno', 'Bun'],
@@ -182,7 +182,7 @@ export const technologies: Technology[] = [
   {
     id: 'supabase', name: 'Supabase', category: 'database_relational',
     description: 'Open-source Firebase alternative with PostgreSQL, Auth, Storage',
-    scores: { performance: 8, scalability: 8, developerExperience: 10, ecosystem: 8, security: 8, costEfficiency: 9, documentation: 9, communitySupport: 8 },
+    scores: { performance: 8, scalability: 7, developerExperience: 10, ecosystem: 8, security: 8, costEfficiency: 9, documentation: 9, communitySupport: 8 },
     bestFor: ['rapid development', 'real-time apps', 'auth + DB combo', 'startups'],
     notIdealFor: ['complex enterprise', 'custom infrastructure'],
     ecosystem: ['PostgreSQL', 'PostgREST', 'GoTrue', 'Realtime'],
@@ -200,7 +200,7 @@ export const technologies: Technology[] = [
   {
     id: 'neon', name: 'Neon', category: 'database_relational',
     description: 'Serverless PostgreSQL with branching and autoscaling',
-    scores: { performance: 8, scalability: 9, developerExperience: 10, ecosystem: 7, security: 8, costEfficiency: 9, documentation: 8, communitySupport: 6 },
+    scores: { performance: 8, scalability: 8, developerExperience: 10, ecosystem: 7, security: 8, costEfficiency: 9, documentation: 8, communitySupport: 6 },
     bestFor: ['serverless apps', 'dev/staging branches', 'Next.js apps'],
     notIdealFor: ['on-premise', 'legacy systems'],
     ecosystem: ['PostgreSQL', 'Prisma', 'Drizzle'],
@@ -288,24 +288,7 @@ export const technologies: Technology[] = [
   },
 
   // ============ AI/ML ============
-  {
-    id: 'openai', name: 'OpenAI API', category: 'ai_ml',
-    description: 'GPT models, embeddings, DALL-E, Whisper APIs',
-    scores: { performance: 9, scalability: 10, developerExperience: 9, ecosystem: 9, security: 8, costEfficiency: 6, documentation: 9, communitySupport: 9 },
-    bestFor: ['chatbots', 'content generation', 'code generation', 'embeddings'],
-    notIdealFor: ['on-premise', 'cost-sensitive', 'privacy-critical'],
-    ecosystem: ['LangChain', 'LlamaIndex', 'Vercel AI SDK'],
-    pricing: 'paid', maturity: 'mature', communitySize: 'massive', learningCurve: 'easy', tags: ['llm', 'gpt', 'ai']
-  },
-  {
-    id: 'gemini', name: 'Google Gemini', category: 'ai_ml',
-    description: 'Google multimodal AI with generous free tier',
-    scores: { performance: 9, scalability: 10, developerExperience: 9, ecosystem: 8, security: 9, costEfficiency: 9, documentation: 8, communitySupport: 8 },
-    bestFor: ['multimodal', 'long context', 'structured output', 'Google ecosystem'],
-    notIdealFor: ['legacy integrations', 'specialized NLP'],
-    ecosystem: ['Vertex AI', 'Genkit', 'AI Studio'],
-    pricing: 'freemium', maturity: 'growing', communitySize: 'large', learningCurve: 'easy', tags: ['llm', 'multimodal', 'google']
-  },
+  // (Main AI/ML section is below with more detailed entries)
 
   // ============ MOBILE ============
   {
@@ -331,7 +314,7 @@ export const technologies: Technology[] = [
   {
     id: 'socketio', name: 'Socket.IO', category: 'realtime',
     description: 'Real-time bidirectional event-based communication',
-    scores: { performance: 7, scalability: 7, developerExperience: 9, ecosystem: 8, security: 7, costEfficiency: 10, documentation: 8, communitySupport: 8 },
+    scores: { performance: 7, scalability: 6, developerExperience: 9, ecosystem: 8, security: 6, costEfficiency: 10, documentation: 8, communitySupport: 8 },
     bestFor: ['chat apps', 'live updates', 'collaborative tools', 'gaming'],
     notIdealFor: ['simple SSE suffices', 'massive scale without infra'],
     ecosystem: ['Redis adapter', 'Admin UI'],
@@ -361,24 +344,7 @@ export const technologies: Technology[] = [
   },
 
   // ============ TESTING ============
-  {
-    id: 'vitest', name: 'Vitest', category: 'testing',
-    description: 'Blazing fast unit testing powered by Vite',
-    scores: { performance: 10, scalability: 8, developerExperience: 10, ecosystem: 7, security: 10, costEfficiency: 10, documentation: 9, communitySupport: 7 },
-    bestFor: ['Vite projects', 'unit testing', 'TypeScript'],
-    notIdealFor: ['non-Vite projects (Jest better)', 'E2E testing'],
-    ecosystem: ['Vite', 'Testing Library', 'MSW'],
-    pricing: 'free', maturity: 'growing', communitySize: 'medium', learningCurve: 'easy', tags: ['testing', 'vite', 'fast']
-  },
-  {
-    id: 'playwright', name: 'Playwright', category: 'testing',
-    description: 'Cross-browser E2E testing framework by Microsoft',
-    scores: { performance: 9, scalability: 9, developerExperience: 9, ecosystem: 8, security: 10, costEfficiency: 10, documentation: 10, communitySupport: 8 },
-    bestFor: ['E2E testing', 'cross-browser', 'visual regression'],
-    notIdealFor: ['unit testing', 'mobile-only testing'],
-    ecosystem: ['Test Generator', 'Trace Viewer', 'VS Code extension'],
-    pricing: 'free', maturity: 'mature', communitySize: 'large', learningCurve: 'moderate', tags: ['e2e', 'browser', 'testing']
-  },
+  // (Main Testing section is below with more detailed entries)
 
   // ============ MESSAGE QUEUE ============
   {
@@ -402,7 +368,7 @@ export const technologies: Technology[] = [
 
   // ============ ORM / DATA ============
   {
-    id: 'prisma', name: 'Prisma', category: 'backend_framework',
+    id: 'prisma', name: 'Prisma', category: 'orm',
     description: 'Next-generation Node.js ORM with type-safe queries',
     scores: { performance: 8, scalability: 8, developerExperience: 10, ecosystem: 8, security: 8, costEfficiency: 10, documentation: 10, communitySupport: 8 },
     bestFor: ['TypeScript projects', 'type-safe DB access', 'migrations'],
@@ -411,7 +377,7 @@ export const technologies: Technology[] = [
     pricing: 'free', maturity: 'mature', communitySize: 'large', learningCurve: 'easy', tags: ['orm', 'typescript', 'migrations']
   },
   {
-    id: 'drizzle', name: 'Drizzle ORM', category: 'backend_framework',
+    id: 'drizzle', name: 'Drizzle ORM', category: 'orm',
     description: 'Lightweight TypeScript ORM with SQL-like syntax',
     scores: { performance: 9, scalability: 8, developerExperience: 9, ecosystem: 7, security: 8, costEfficiency: 10, documentation: 8, communitySupport: 7 },
     bestFor: ['edge computing', 'serverless', 'SQL-first approach', 'lightweight'],
