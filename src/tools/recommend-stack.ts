@@ -21,7 +21,7 @@ import { getRequiredCategories } from '../knowledge/scoring.js';
 import { technologies } from '../knowledge/technologies.js';
 import {
   makeDecision, topsisRank,
-  type Criterion, type Alternative, type DecisionResult
+  type Criterion, type Alternative, type DecisionResult, type RankedAlternative
 } from '../engine/decision-engine.js';
 import {
   analyzeStackCompatibility, findBestCompatible,
@@ -300,6 +300,11 @@ export function recommendStack(
       .filter(r => r.alternative.id !== d.topPick.id)
       .slice(0, 2);
 
+    // Build rejection reasons for NON-selected techs
+    const rejectedRankings = d.decision.rankings
+      .filter(r => r.alternative.id !== d.topPick.id);
+    const rejections = buildRejections(rejectedRankings, ranking, criteria, d, projectType, scale);
+
     const rec: TechRecommendation = {
       technology: tech,
       score: ranking?.score ?? 0,
@@ -308,6 +313,7 @@ export function recommendStack(
         tech: technologies.find(t => t.id === a.alternative.id)!,
         reason: `TOPSIS: ${a.normalizedScore}/100 — ${a.strengths.slice(0, 2).join(', ') || tech.bestFor[0]}`,
       })),
+      rejections,
     };
 
     const stackKey = categoryLabels[d.category];
@@ -365,6 +371,101 @@ function buildTopsisReasoning(
   lines.push(`Key factors for ${projectType}/${scale}: ${topWeights}`);
 
   return lines.join('\n');
+}
+
+/**
+ * Build rejection reasons — tại sao KHÔNG chọn mỗi tech
+ * Phân tích dựa trên:
+ * 1. TOPSIS score gap vs winner
+ * 2. Weaknesses trong context hiện tại
+ * 3. Criteria nào bị điểm thấp (theo weight)
+ * 4. Compatibility conflicts (nếu có)
+ */
+function buildRejections(
+  rejectedRankings: RankedAlternative[],
+  winnerRanking: RankedAlternative | undefined,
+  criteria: Criterion[],
+  decision: CategoryDecision,
+  projectType: ProjectType,
+  scale: ProjectScale
+): { tech: string; reasons: string[] }[] {
+  if (!winnerRanking || rejectedRankings.length === 0) return [];
+
+  // Sort criteria by weight (highest first) for context
+  const sortedCriteria = [...criteria].sort((a, b) => b.weight - a.weight);
+  const topCriteriaIds = sortedCriteria.slice(0, 3).map(c => c.id);
+
+  return rejectedRankings.map(rejected => {
+    const reasons: string[] = [];
+    const alt = rejected.alternative;
+    const winnerAlt = winnerRanking.alternative;
+    const scoreGap = winnerRanking.normalizedScore - rejected.normalizedScore;
+
+    // 1. Overall TOPSIS score gap
+    if (scoreGap > 50) {
+      reasons.push(`TOPSIS score quá thấp: ${rejected.normalizedScore}/100 vs ${winnerRanking.normalizedScore}/100 (gap: ${scoreGap} điểm)`);
+    } else if (scoreGap > 20) {
+      reasons.push(`TOPSIS score thấp hơn đáng kể: ${rejected.normalizedScore}/100 vs ${winnerRanking.normalizedScore}/100`);
+    } else if (scoreGap > 0) {
+      reasons.push(`TOPSIS score sát nhưng thấp hơn: ${rejected.normalizedScore}/100 vs ${winnerRanking.normalizedScore}/100 (gap: ${scoreGap})`);
+    }
+
+    // 2. Specific criteria where this tech loses (focus on TOP weighted criteria)
+    for (const criterionId of topCriteriaIds) {
+      const c = criteria.find(cr => cr.id === criterionId)!;
+      const rejectedScore = alt.scores[criterionId] ?? 0;
+      const winnerScore = winnerAlt.scores[criterionId] ?? 0;
+      const diff = winnerScore - rejectedScore;
+
+      if (diff >= 2) {
+        const weightPct = (c.weight * 100).toFixed(0);
+        reasons.push(`${c.name} thấp: ${rejectedScore}/10 vs ${winnerAlt.name} ${winnerScore}/10 (tiêu chí này chiếm ${weightPct}% trọng số)`);
+      }
+    }
+
+    // 3. Weaknesses from TOPSIS analysis
+    if (rejected.weaknesses.length > 0) {
+      const contextWeaknesses = rejected.weaknesses.filter((w: string) => {
+        // Only include weaknesses relevant to current context
+        const lw = w.toLowerCase();
+        if (scale === 'enterprise' && (lw.includes('security') || lw.includes('scalability'))) return true;
+        if (scale === 'mvp' && (lw.includes('developer') || lw.includes('cost'))) return true;
+        if (projectType === 'fintech' && lw.includes('security')) return true;
+        return true; // include all weaknesses
+      });
+      if (contextWeaknesses.length > 0 && reasons.length < 4) {
+        reasons.push(`Điểm yếu: ${contextWeaknesses.slice(0, 2).join('; ')}`);
+      }
+    }
+
+    // 4. Scale-specific mismatch
+    if (scale === 'mvp') {
+      const dx = alt.scores['developerExperience'] ?? 0;
+      const cost = alt.scores['costEfficiency'] ?? 0;
+      if (dx < 7) reasons.push(`Developer Experience chỉ ${dx}/10 — MVP cần DX cao để ship nhanh`);
+      if (cost < 6) reasons.push(`Cost Efficiency ${cost}/10 — MVP ngân sách hạn chế`);
+    }
+    if (scale === 'enterprise') {
+      const sec = alt.scores['security'] ?? 0;
+      const scal = alt.scores['scalability'] ?? 0;
+      if (sec < 8) reasons.push(`Security chỉ ${sec}/10 — enterprise cần ≥8`);
+      if (scal < 8) reasons.push(`Scalability chỉ ${scal}/10 — enterprise cần ≥8`);
+    }
+
+    // 5. Learning curve concern
+    const techData = technologies.find(t => t.id === alt.id);
+    if (techData && techData.learningCurve === 'steep' && scale === 'mvp') {
+      reasons.push(`Learning curve steep — MVP team cần tech dễ học, ship nhanh`);
+    }
+
+    // Deduplicate and limit
+    const uniqueReasons = [...new Set(reasons)].slice(0, 5);
+
+    return {
+      tech: alt.name,
+      reasons: uniqueReasons.length > 0 ? uniqueReasons : [`TOPSIS score thấp hơn: ${rejected.normalizedScore}/100`],
+    };
+  });
 }
 
 function buildStackPhilosophy(

@@ -208,11 +208,18 @@ export function createServer(): McpServer {
 
       const renderRec = (label: string, rec?: any) => {
         if (!rec) return;
-        lines.push(`## ${label}: **${rec.technology.name}** (Score: ${rec.score.toFixed(1)})`);
+        lines.push(`## ${label}: **${rec.technology.name}** (Score: ${rec.score.toFixed(4)})`);
         lines.push(rec.reasoning);
         if (rec.alternatives.length > 0) {
           lines.push('\n**Alternatives:**');
           rec.alternatives.forEach((a: any) => lines.push(`- ${a.tech.name} — ${a.reason}`));
+        }
+        if (rec.rejections && rec.rejections.length > 0) {
+          lines.push('\n**❌ Tại sao không chọn:**');
+          rec.rejections.forEach((r: any) => {
+            lines.push(`- **${r.tech}**:`);
+            r.reasons.forEach((reason: string) => lines.push(`  - ${reason}`));
+          });
         }
         lines.push('');
       };

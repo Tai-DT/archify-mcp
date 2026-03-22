@@ -251,6 +251,7 @@ export interface TechRecommendation {
   score: number;
   reasoning: string;
   alternatives: { tech: Technology; reason: string }[];
+  rejections?: { tech: string; reasons: string[] }[];  // Tại sao KHÔNG chọn
 }
 
 export interface StackRecommendation {

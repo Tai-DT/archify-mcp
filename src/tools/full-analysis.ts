@@ -131,6 +131,28 @@ export function runFullAnalysis(
   stackSummary.forEach(s => sections.push(`- ${s}`));
   sections.push(`\n${stack.architectureNotes}`);
 
+  // Show rejection reasons for key categories
+  const keyRecs = [
+    { label: 'Frontend', rec: stack.frontend },
+    { label: 'Backend', rec: stack.backend },
+    { label: 'Database', rec: stack.database },
+  ];
+  const hasAnyRejections = keyRecs.some(k => k.rec?.rejections && k.rec.rejections.length > 0);
+  if (hasAnyRejections) {
+    sections.push('\n### ❌ Tại sao không chọn các tech khác\n');
+    for (const { label, rec } of keyRecs) {
+      if (!rec?.rejections || rec.rejections.length === 0) continue;
+      sections.push(`**${label}** (đã chọn: ${rec.technology.name}):`);
+      for (const r of rec.rejections) {
+        sections.push(`- ~~${r.tech}~~: ${r.reasons[0]}`);
+        if (r.reasons.length > 1) {
+          r.reasons.slice(1, 3).forEach((reason: string) => sections.push(`  - ${reason}`));
+        }
+      }
+      sections.push('');
+    }
+  }
+
   // ─── STEP 3b: Compatibility Analysis (Graph Algorithm) ───
   sections.push('\n### 🔗 Stack Compatibility Analysis (Graph Algorithm)\n');
   const stackIds: string[] = [];
